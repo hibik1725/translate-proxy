@@ -2,7 +2,7 @@ import { translateWithOpenAI } from './openai.js'
 import { hashText } from './utils.js'
 
 // インメモリキャッシュ（開発用）
-// TODO: Vercel KV / Neon を使った永続キャッシュを実装
+// TODO: Upstash Redis を使った永続キャッシュを実装
 const memoryCache = new Map<string, string>()
 
 /**
@@ -10,14 +10,16 @@ const memoryCache = new Map<string, string>()
  */
 export async function getTranslations(
   texts: string[],
-  lang: string
+  lang: string,
+  apiKey: string
 ): Promise<Map<string, string>> {
   const result = new Map<string, string>()
   const uncached: string[] = []
 
   // キャッシュから取得
   for (const text of texts) {
-    const cacheKey = `${lang}:${hashText(text)}`
+    const hash = await hashText(text)
+    const cacheKey = `${lang}:${hash}`
     const cached = memoryCache.get(cacheKey)
 
     if (cached) {
@@ -31,14 +33,15 @@ export async function getTranslations(
   if (uncached.length > 0) {
     console.log(`Translating ${uncached.length} new texts to ${lang}...`)
 
-    const newTranslations = await translateWithOpenAI(uncached, lang)
+    const newTranslations = await translateWithOpenAI(uncached, lang, apiKey)
 
     // キャッシュに保存
-    newTranslations.forEach((translated, original) => {
-      const cacheKey = `${lang}:${hashText(original)}`
+    for (const [original, translated] of newTranslations) {
+      const hash = await hashText(original)
+      const cacheKey = `${lang}:${hash}`
       memoryCache.set(cacheKey, translated)
       result.set(original, translated)
-    })
+    }
   }
 
   return result

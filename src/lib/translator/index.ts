@@ -3,17 +3,26 @@ import { extractTexts } from './extractor.js'
 import { replaceTexts, rewriteInternalLinks, setLangAttribute } from './replacer.js'
 import { getTranslations } from '../cache.js'
 
-const ORIGIN_URL = process.env.ORIGIN_URL || 'http://localhost:3000'
+export type Env = {
+  ORIGIN_URL: string
+  OPENAI_API_KEY: string
+}
 
 /**
  * ページを翻訳する
  */
-export async function translatePage(path: string, lang: string): Promise<string> {
+export async function translatePage(
+  path: string,
+  lang: string,
+  env: Env
+): Promise<string> {
   console.log(`Translating ${path} to ${lang}...`)
 
+  const originUrl = env.ORIGIN_URL || 'http://localhost:3000'
+
   // 1. オリジンからHTML取得
-  const originUrl = `${ORIGIN_URL}${path}`
-  const response = await fetch(originUrl)
+  const fullUrl = `${originUrl}${path}`
+  const response = await fetch(fullUrl)
 
   if (!response.ok) {
     throw new Error(`Failed to fetch origin: ${response.status} ${response.statusText}`)
@@ -31,7 +40,7 @@ export async function translatePage(path: string, lang: string): Promise<string>
   console.log(`Found ${uniqueTexts.length} unique Japanese texts`)
 
   // 4. 翻訳取得（キャッシュ or OpenAI）
-  const translations = await getTranslations(uniqueTexts, lang)
+  const translations = await getTranslations(uniqueTexts, lang, env.OPENAI_API_KEY)
 
   // 5. ASTに翻訳テキストを差し替え
   replaceTexts(textNodes, translations)

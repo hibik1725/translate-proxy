@@ -1,10 +1,13 @@
-import crypto from 'crypto'
-
 /**
  * テキストのSHA256ハッシュを生成（翻訳メモリ検索用）
+ * Cloudflare Workers互換のWeb Crypto APIを使用
  */
-export function hashText(text: string): string {
-  return crypto.createHash('sha256').update(text).digest('hex')
+export async function hashText(text: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(text)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 /**

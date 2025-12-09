@@ -1,9 +1,9 @@
-import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 import { translateRoute } from './routes/translate.js'
+import type { Env } from './lib/translator/index.js'
 
-const app = new Hono()
+const app = new Hono<{ Bindings: Env }>()
 
 // ミドルウェア
 app.use('*', logger())
@@ -12,12 +12,7 @@ app.use('*', logger())
 app.get('/', (c) => {
   return c.json({
     name: 'translate-proxy',
-    status: 'ok',
-    usage: {
-      '/en/*': 'English translation',
-      '/zh/*': 'Chinese translation',
-      '/ko/*': 'Korean translation',
-    },
+    status: 'ok from cloudFlare workers',
   })
 })
 
@@ -32,11 +27,4 @@ app.get('/health', (c) => {
 // 翻訳ルート
 app.route('/:lang', translateRoute)
 
-const port = Number(process.env.PORT) || 3001
-
-console.log(`🚀 translate-proxy running on http://localhost:${port}`)
-
-serve({
-  fetch: app.fetch,
-  port,
-})
+export default app

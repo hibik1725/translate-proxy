@@ -24,3 +24,6 @@ Thumbs.db
 
 # tmp
 .tmp
+
+# wrangler
+.wrangler

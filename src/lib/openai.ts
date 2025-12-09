@@ -1,16 +1,13 @@
 import OpenAI from 'openai'
 import { getLangName } from './utils.js'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 /**
  * OpenAI APIでテキストを一括翻訳
  */
 export async function translateWithOpenAI(
   texts: string[],
-  targetLang: string
+  targetLang: string,
+  apiKey: string
 ): Promise<Map<string, string>> {
   const result = new Map<string, string>()
 
@@ -18,13 +15,14 @@ export async function translateWithOpenAI(
     return result
   }
 
+  const openai = new OpenAI({ apiKey })
   const langName = getLangName(targetLang)
 
   // バッチ処理（一度に最大50テキスト）
   const batchSize = 50
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize)
-    const translations = await translateBatch(batch, langName)
+    const translations = await translateBatch(openai, batch, langName)
 
     translations.forEach((translated, original) => {
       result.set(original, translated)
@@ -35,6 +33,7 @@ export async function translateWithOpenAI(
 }
 
 async function translateBatch(
+  openai: OpenAI,
   texts: string[],
   langName: string
 ): Promise<Map<string, string>> {

@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
-import { translatePage } from '../lib/translator/index.js'
+import { translatePage, type Env } from '../lib/translator/index.js'
 
 const SUPPORTED_LANGS = ['en', 'zh', 'ko'] as const
 type SupportedLang = (typeof SUPPORTED_LANGS)[number]
 
-export const translateRoute = new Hono()
+export const translateRoute = new Hono<{ Bindings: Env }>()
 
 // /:lang/* へのリクエストを処理
 translateRoute.get('/*', async (c) => {
@@ -20,7 +20,7 @@ translateRoute.get('/*', async (c) => {
   const pagePath = fullPath.replace(`/${lang}`, '') || '/'
 
   try {
-    const html = await translatePage(pagePath, lang as string)
+    const html = await translatePage(pagePath, lang as string, c.env)
 
     return c.html(html, {
       headers: {

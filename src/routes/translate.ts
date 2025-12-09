@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { isSupportedLang, translate } from '../services/translate'
+import { isSupportedLang, TranslateService } from '../services/translate'
 
 /**
  * 翻訳ルートハンドラー
@@ -19,7 +19,8 @@ translateRoute.get('/*', async (c) => {
   }
 
   const sampleText = 'こんにちは世界'
-  const translated = translate(sampleText, lang)
+  const service = new TranslateService(lang)
+  const translated = service.execute(sampleText)
 
   return c.json({
     original: sampleText,

@@ -20,7 +20,78 @@ src/
 ```
 
 - **Routes**: HTTPリクエスト/レスポンスの処理のみ。ビジネスロジックは含めない
-- **Services**: ビジネスロジックを集約。テスト可能な単位で分割。ユーティリティ関数もここに含める
+- **Services**: ビジネスロジックを集約。テスト可能な単位で分割
+
+### Serviceクラスの実装規約
+
+Serviceは**クラスベース**で実装し、以下のルールに従うこと：
+
+- **public メソッドは `execute` のみ**: 外部に公開するメソッドは `execute` のみとする
+- **その他のメソッドは全て `private`**: 内部ロジックは全て private メソッドとして隠蔽する
+- コンストラクタで依存関係を注入する
+
+```typescript
+/**
+ * Service for translating text using external API.
+ */
+export class TranslationService {
+  /**
+   * Creates a new TranslationService instance.
+   * @param apiKey - The API key for the translation service
+   */
+  constructor(private readonly apiKey: string) {}
+
+  /**
+   * Executes the translation operation.
+   * @param text - The text to translate
+   * @param targetLang - The target language code (en, zh, ko)
+   * @returns The translated text
+   * @throws {TranslationError} When the translation API fails
+   */
+  public async execute(text: string, targetLang: string): Promise<string> {
+    this.validateInput(text)
+    const normalizedText = this.normalizeText(text)
+    return this.callTranslationApi(normalizedText, targetLang)
+  }
+
+  /**
+   * Validates the input text.
+   * @param text - The text to validate
+   * @throws {ValidationError} When the text is empty
+   */
+  private validateInput(text: string): void {
+    if (!text.trim()) {
+      throw new ValidationError('Text cannot be empty')
+    }
+  }
+
+  /**
+   * Normalizes the input text.
+   * @param text - The text to normalize
+   * @returns The normalized text
+   */
+  private normalizeText(text: string): string {
+    return text.trim()
+  }
+
+  /**
+   * Calls the translation API.
+   * @param text - The text to translate
+   * @param targetLang - The target language code
+   * @returns The translated text
+   */
+  private async callTranslationApi(text: string, targetLang: string): Promise<string> {
+    // API call implementation
+  }
+}
+```
+
+**使用例:**
+
+```typescript
+const service = new TranslationService(env.OPENAI_API_KEY)
+const result = await service.execute('こんにちは', 'en')
+```
 
 ## コーディング規約
 

@@ -6,7 +6,7 @@
 /**
  * サポートされている言語コード
  */
-export const SUPPORTED_LANGS = ['en', 'zh', 'ko'] as const
+export const SUPPORTED_LANGS = ['en'] as const
 
 /**
  * サポートされている言語の型
@@ -23,26 +23,33 @@ export function isSupportedLang(lang: string): lang is SupportedLang {
 }
 
 /**
- * 言語コードから言語名を取得する
- * @param lang - 言語コード
- * @returns 言語名
+ * Translation service for translating text to a target language.
  */
-export function getLangName(lang: SupportedLang): string {
-  const names: Record<SupportedLang, string> = {
-    en: 'English',
-    zh: 'Chinese',
-    ko: 'Korean',
-  }
-  return names[lang]
-}
+export class TranslateService {
+  /**
+   * Creates a new TranslateService instance.
+   * @param targetLang - The target language code for translation
+   */
+  constructor(private readonly targetLang: SupportedLang) {}
 
-/**
- * テキストを翻訳する（スタブ実装）
- * @param text - 翻訳対象のテキスト
- * @param targetLang - 翻訳先の言語コード
- * @returns 翻訳されたテキスト
- */
-export function translate(text: string, targetLang: SupportedLang): string {
-  const langName = getLangName(targetLang)
-  return `[${langName}] ${text}`
+  /**
+   * Executes the translation operation.
+   * @param text - The text to translate
+   * @returns The translated text with language prefix
+   */
+  public execute(text: string): string {
+    const langName = this.getLangName()
+    return `[${langName}] ${text}`
+  }
+
+  /**
+   * Gets the language name for the target language.
+   * @returns The language name
+   */
+  private getLangName(): string {
+    const names: Record<SupportedLang, string> = {
+      en: 'English',
+    }
+    return names[this.targetLang]
+  }
 }

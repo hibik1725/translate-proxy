@@ -95,6 +95,57 @@ const result = await service.execute('こんにちは', 'en')
 
 ## コーディング規約
 
+### 型安全
+
+厳格な型安全を維持すること。以下のルールを必ず守ること：
+
+- **`any` 型は禁止**: いかなる場合も `any` を使用しないこと
+- **`unknown` 型は禁止**: `unknown` も使用せず、適切な型を定義すること
+- **型アサーション（`as`）は原則禁止**: 型アサーションは型安全性を損なうため、基本的に使用しないこと
+  - やむを得ず使用する場合は、その理由をコメントで明記すること
+  - 型ガードや型の絞り込みで対応できないか必ず検討すること
+
+```typescript
+// ❌ Bad: any を使用
+function processData(data: any): void {
+  console.log(data.name)
+}
+
+// ❌ Bad: unknown を使用
+function handleResponse(response: unknown): void {
+  // ...
+}
+
+// ❌ Bad: as による型アサーション
+const user = response as User
+
+// ✅ Good: 適切な型を定義
+interface User {
+  id: string
+  name: string
+}
+
+function processUser(user: User): void {
+  console.log(user.name)
+}
+
+// ✅ Good: 型ガードを使用
+function isUser(value: unknown): value is User {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'name' in value
+  )
+}
+
+function handleResponse(response: unknown): void {
+  if (isUser(response)) {
+    processUser(response)
+  }
+}
+```
+
 ### ファイル配置
 
 - **コロケーション**: 全てのファイルはコロケーションで配置すること

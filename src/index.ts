@@ -1,6 +1,10 @@
 import { Hono } from 'hono'
 import { translateRoute } from './routes/translate'
 
+/**
+ * メインアプリケーション
+ * Honoフレームワークで構築された翻訳プロキシサーバー
+ */
 const app = new Hono()
 
 // ヘルスチェック

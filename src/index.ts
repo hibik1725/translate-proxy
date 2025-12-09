@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { translateRoute } from './routes/translate'
 
 const app = new Hono()
 
@@ -9,5 +10,8 @@ app.get('/health', (c) => {
     timestamp: new Date().toISOString(),
   })
 })
+
+// 翻訳ルート
+app.route('/:lang', translateRoute)
 
 export default app

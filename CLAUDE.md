@@ -24,6 +24,12 @@ src/
 
 ## コーディング規約
 
+### ファイル配置
+
+- **コロケーション**: 全てのファイルはコロケーションで配置すること
+- 関連するファイル（実装・テスト）は同じディレクトリに配置する
+- テストファイルは対象ファイルと同じディレクトリに `*.spec.ts` として配置する
+
 ### JSDoc
 
 全ての関数・クラス・型にJSDocを記述すること。JSDocは英語で記述してよい。
@@ -44,18 +50,18 @@ export async function translateText(text: string, targetLang: string): Promise<s
 ### テスト
 
 - テストフレームワーク: **Vitest**
-- 全てのファイルにテストを書くこと
-- テストファイルは `*.test.ts` の命名規則
+- **全てのファイルに必ずテストを書くこと**
+- テストファイルは `*.spec.ts` の命名規則
 - カバレッジ目標: 80%以上
 
 ```
 src/
 ├── services/
 │   ├── translation.ts
-│   └── translation.test.ts
+│   └── translation.spec.ts
 ├── lib/
 │   ├── cache.ts
-│   └── cache.test.ts
+│   └── cache.spec.ts
 ```
 
 ### テストの書き方

@@ -3,6 +3,10 @@
     "cloudflare": {
       "command": "npx",
       "args": ["mcp-remote", "https://observability.mcp.cloudflare.com/sse"]
+    },
+    "vibe_kanban": {
+      "command": "npx",
+      "args": ["-y", "vibe-kanban@latest", "--mcp"]
     }
   }
 }

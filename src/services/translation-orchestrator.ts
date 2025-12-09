@@ -3,9 +3,11 @@
  * Orchestrates the entire translation process
  */
 
+import type { KVNamespace } from '../types/env'
+import { CachedTranslatorService } from './cached-translator'
 import { HtmlParserService } from './html-parser'
 import { HtmlSerializerService } from './html-serializer'
-import { type OpenAIClient, OpenAITranslatorService } from './openai-translator'
+import type { OpenAIClient } from './openai-translator'
 import { TextExtractorService } from './text-extractor'
 import { TextReplacerService } from './text-replacer'
 import type { SupportedLang } from './translate'
@@ -16,6 +18,7 @@ import type { SupportedLang } from './translate'
 export interface TranslationOrchestratorDeps {
   apiKey: string
   openAIClient?: OpenAIClient
+  kv?: KVNamespace
 }
 
 /**
@@ -27,7 +30,7 @@ export class TranslationOrchestratorService {
   private readonly extractor: TextExtractorService
   private readonly replacer: TextReplacerService
   private readonly serializer: HtmlSerializerService
-  private readonly translator: OpenAITranslatorService
+  private readonly translator: CachedTranslatorService
 
   /**
    * Creates a new TranslationOrchestratorService instance.
@@ -38,10 +41,11 @@ export class TranslationOrchestratorService {
     this.extractor = new TextExtractorService()
     this.replacer = new TextReplacerService()
     this.serializer = new HtmlSerializerService()
-    this.translator = new OpenAITranslatorService(
-      deps.apiKey,
-      deps.openAIClient,
-    )
+    this.translator = new CachedTranslatorService({
+      apiKey: deps.apiKey,
+      client: deps.openAIClient,
+      kv: deps.kv,
+    })
   }
 
   /**

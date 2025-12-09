@@ -46,8 +46,11 @@ translateRoute.get('/*', async (c) => {
     const fetcher = new OriginFetcherService(originUrl)
     const html = await fetcher.execute(pathWithoutLang)
 
-    // 2. Translate HTML
-    const orchestrator = new TranslationOrchestratorService({ apiKey })
+    // 2. Translate HTML (with optional KV cache)
+    const orchestrator = new TranslationOrchestratorService({
+      apiKey,
+      kv: c.env.TRANSLATION_CACHE,
+    })
     const translatedHtml = await orchestrator.execute(html, lang)
 
     // 3. Return translated HTML

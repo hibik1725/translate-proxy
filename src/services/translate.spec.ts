@@ -1,9 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import {
-  isSupportedLang,
-  TranslateService,
-  SUPPORTED_LANGS,
-} from './translate'
+import { describe, expect, it } from 'vitest'
+import { isSupportedLang, SUPPORTED_LANGS, TranslateService } from './translate'
 
 describe('翻訳サービス', () => {
   describe('SUPPORTED_LANGS', () => {

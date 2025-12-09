@@ -19,6 +19,9 @@ export class HtmlSerializerService {
    * @returns The HTML string
    */
   public execute(hast: Root): string {
+    // Type assertion needed: hast-util-to-parse5 returns a parse5 Node type,
+    // but serialize expects ParentNode. The conversion is safe because
+    // we're serializing a Root HAST node which always becomes a Document.
     const parse5Tree = toParse5(hast) as ParentNode
     return serialize(parse5Tree)
   }

@@ -6,6 +6,8 @@ import {
 } from './openai-translator'
 
 describe('OpenAITranslatorService', () => {
+  // Type assertion needed for mocking: vi.fn() returns a generic mock type
+  // that doesn't match the specific OpenAIClient.chat.completions.create signature
   const createMockClient = (createFn: ReturnType<typeof vi.fn>): OpenAIClient =>
     ({
       chat: {

@@ -12,7 +12,7 @@ import type { SupportedLang } from './translate'
 export class TranslationError extends Error {
   constructor(
     message: string,
-    public readonly cause?: unknown,
+    public override readonly cause?: Error,
   ) {
     super(message)
     this.name = 'TranslationError'
@@ -35,6 +35,13 @@ interface ChatMessage {
 }
 
 /**
+ * Chat completion response type
+ */
+interface ChatCompletionResponse {
+  choices: Array<{ message: { content: string | null } }>
+}
+
+/**
  * OpenAI client interface for dependency injection
  */
 export interface OpenAIClient {
@@ -44,10 +51,41 @@ export interface OpenAIClient {
         model: string
         messages: ChatMessage[]
         temperature: number
-      }) => Promise<{
-        choices: Array<{ message: { content: string | null } }>
-      }>
+      }) => Promise<ChatCompletionResponse>
     }
+  }
+}
+
+/**
+ * Creates an OpenAI client wrapper from the OpenAI SDK.
+ * This function bridges the OpenAI SDK types with our internal interface.
+ * @param apiKey - The OpenAI API key
+ * @returns OpenAI client wrapper
+ */
+function createOpenAIClient(apiKey: string): OpenAIClient {
+  const openai = new OpenAI({ apiKey })
+
+  return {
+    chat: {
+      completions: {
+        create: async (params: {
+          model: string
+          messages: ChatMessage[]
+          temperature: number
+        }): Promise<ChatCompletionResponse> => {
+          const response = await openai.chat.completions.create({
+            model: params.model,
+            messages: params.messages,
+            temperature: params.temperature,
+          })
+          return {
+            choices: response.choices.map((choice) => ({
+              message: { content: choice.message.content },
+            })),
+          }
+        },
+      },
+    },
   }
 }
 
@@ -63,7 +101,7 @@ export class OpenAITranslatorService {
    * @param client - Optional OpenAI client for testing
    */
   constructor(apiKey: string, client?: OpenAIClient) {
-    this.client = client ?? (new OpenAI({ apiKey }) as unknown as OpenAIClient)
+    this.client = client ?? createOpenAIClient(apiKey)
   }
 
   /**
@@ -146,7 +184,8 @@ Preserve the meaning and tone of the original text.`,
       if (error instanceof TranslationError) {
         throw error
       }
-      throw new TranslationError('Failed to translate texts', error)
+      const cause = error instanceof Error ? error : new Error(String(error))
+      throw new TranslationError('Failed to translate texts', cause)
     }
   }
 

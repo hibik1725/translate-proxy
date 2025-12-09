@@ -8,7 +8,7 @@ const app = new Hono()
 // ミドルウェア
 app.use('*', logger())
 
-// ヘルスチェック
+// トップページ
 app.get('/', (c) => {
   return c.json({
     name: 'translate-proxy',
@@ -18,6 +18,14 @@ app.get('/', (c) => {
       '/zh/*': 'Chinese translation',
       '/ko/*': 'Korean translation',
     },
+  })
+})
+
+// ヘルスチェック
+app.get('/health', (c) => {
+  return c.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
   })
 })
 

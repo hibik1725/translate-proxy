@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { sitemapRoute } from './routes/sitemap'
 import { translateRoute } from './routes/translate'
 import type { Env } from './types/env'
 
@@ -15,6 +16,9 @@ app.get('/health', (c) => {
     timestamp: new Date().toISOString(),
   })
 })
+
+// サイトマップルート（翻訳ルートより先に登録）
+app.route('/:lang', sitemapRoute)
 
 // 翻訳ルート
 app.route('/:lang', translateRoute)

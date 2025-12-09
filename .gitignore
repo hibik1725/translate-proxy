@@ -1,0 +1,26 @@
+# dependencies
+node_modules
+.pnpm-store
+
+# build
+dist
+
+# env
+.env
+.env.local
+
+# logs
+*.log
+
+# editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# tmp
+.tmp

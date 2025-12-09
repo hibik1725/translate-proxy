@@ -1,0 +1,30 @@
+{
+  "name": "translate-proxy",
+  "version": "1.0.0",
+  "description": "Translation proxy for picker-app using Hono",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.13.1",
+  "dependencies": {
+    "@hono/node-server": "^1.19.7",
+    "hast-util-from-parse5": "^8.0.3",
+    "hast-util-to-parse5": "^8.0.1",
+    "hono": "^4.10.7",
+    "openai": "^6.10.0",
+    "parse5": "^8.0.0",
+    "unist-util-visit": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/hast": "^3.0.4",
+    "@types/node": "^24.10.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

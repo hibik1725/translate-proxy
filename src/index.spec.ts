@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import app from './index'
 
-describe('アプリケーション', () => {
+describe('health checkのendpoint test', () => {
   describe('/health', () => {
     describe('成功系', () => {
       it('ステータスokを返すこと', async () => {

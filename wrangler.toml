@@ -4,3 +4,6 @@ compatibility_date = "2024-12-09"
 
 [observability]
 enabled = true
+
+[vars]
+ORIGIN_URL = "https://pick-er.vercel.app"

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "dev:local": "wrangler dev --var ORIGIN_URL:http://localhost:3000",
+    "dev:prod": "wrangler dev --var ORIGIN_URL:https://pick-er.vercel.app",
     "deploy": "wrangler deploy",
     "build": "tsc",
     "start": "node dist/index.js",

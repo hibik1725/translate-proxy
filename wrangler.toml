@@ -1,6 +1,13 @@
 name = "translate-proxy"
 main = "src/index.ts"
 compatibility_date = "2024-12-09"
+compatibility_flags = ["nodejs_compat"]
+
+# Production route configuration
+# Uncomment and configure when deploying to production
+# routes = [
+#   { pattern = "translate.pick-er.com/*", zone_name = "pick-er.com" }
+# ]
 
 [observability]
 enabled = true
@@ -9,8 +16,18 @@ enabled = true
 ORIGIN_URL = "https://pick-er.vercel.app"
 
 # KV Namespace bindings
-# Preview namespace for development
+# Run: wrangler kv:namespace create TRANSLATION_CACHE
+# Run: wrangler kv:namespace create TRANSLATION_CACHE --preview
+# Then replace the IDs below
 [[kv_namespaces]]
 binding = "TRANSLATION_CACHE"
-id = "placeholder_preview_id"
+id = "placeholder_production_id"
 preview_id = "placeholder_preview_id"
+
+# Production environment
+[env.production]
+vars = { ORIGIN_URL = "https://pick-er.vercel.app" }
+
+# Staging environment for testing
+[env.staging]
+vars = { ORIGIN_URL = "https://pick-er.vercel.app" }

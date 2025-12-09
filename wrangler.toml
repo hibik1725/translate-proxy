@@ -7,3 +7,10 @@ enabled = true
 
 [vars]
 ORIGIN_URL = "https://pick-er.vercel.app"
+
+# KV Namespace bindings
+# Preview namespace for development
+[[kv_namespaces]]
+binding = "TRANSLATION_CACHE"
+id = "placeholder_preview_id"
+preview_id = "placeholder_preview_id"

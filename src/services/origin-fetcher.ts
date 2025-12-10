@@ -24,19 +24,22 @@ export type FetchFunction = typeof fetch
 
 /**
  * Service for fetching HTML from the origin server.
+ * Note: In Cloudflare Workers, fetch must be called directly within the request context.
+ * Storing fetch as a class property can cause issues.
  */
 export class OriginFetcherService {
   private readonly originUrl: string
-  private readonly fetchFn: FetchFunction
+  private readonly testFetchFn: FetchFunction | null
 
   /**
    * Creates a new OriginFetcherService instance.
    * @param originUrl - The base URL of the origin server
-   * @param fetchFn - Optional fetch function for testing
+   * @param fetchFn - Optional fetch function for testing only
    */
   constructor(originUrl: string, fetchFn?: FetchFunction) {
     this.originUrl = originUrl.replace(/\/$/, '') // Remove trailing slash
-    this.fetchFn = fetchFn ?? fetch
+    // Only store fetchFn if explicitly provided (for testing)
+    this.testFetchFn = fetchFn ?? null
   }
 
   /**
@@ -48,7 +51,9 @@ export class OriginFetcherService {
     const url = `${this.originUrl}${path}`
 
     try {
-      const response = await this.fetchFn(url, {
+      // Use test fetch function if provided, otherwise use global fetch directly
+      const fetchFn = this.testFetchFn ?? fetch
+      const response = await fetchFn(url, {
         headers: {
           Accept: 'text/html',
           'User-Agent': 'translate-proxy/1.0',

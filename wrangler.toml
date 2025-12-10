@@ -21,8 +21,7 @@ ORIGIN_URL = "https://pick-er.vercel.app"
 # Then replace the IDs below
 [[kv_namespaces]]
 binding = "TRANSLATION_CACHE"
-id = "placeholder_production_id"
-preview_id = "placeholder_preview_id"
+id = "3ca3dc2c230f4da78d2f88c687c42e12"
 
 # Production environment
 [env.production]

@@ -10,12 +10,32 @@ export class JsTextExtractorService {
    * - Kanji: \u4E00-\u9FFF
    */
   private static readonly JAPANESE_REGEX =
-    /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/
+    /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g
 
   /**
    * Unicode escape pattern for Japanese characters.
    */
   private static readonly UNICODE_ESCAPE_REGEX = /\\u([0-9a-fA-F]{4})/g
+
+  /**
+   * Maximum length for extracted strings.
+   * UI strings are typically short, so we filter out long strings
+   * that are likely code or data rather than translatable text.
+   */
+  private static readonly MAX_STRING_LENGTH = 200
+
+  /**
+   * Patterns that indicate a string is likely JavaScript code, not UI text.
+   */
+  private static readonly CODE_PATTERNS = [
+    /[{}();=]/, // JS syntax characters
+    /function\s*\(/, // function declarations
+    /=>\s*[{(]/, // arrow functions
+    /\.\w+\(/, // method calls
+    /\[\d+\]/, // array access
+    /https?:\/\//, // URLs
+    /\w+:\s*\w+,/, // object property patterns
+  ]
 
   /**
    * Executes the extraction of Japanese strings from JavaScript code.
@@ -24,7 +44,9 @@ export class JsTextExtractorService {
    */
   public execute(jsCode: string): string[] {
     const strings = this.extractStringLiterals(jsCode)
-    const japaneseStrings = strings.filter((str) => this.containsJapanese(str))
+    const japaneseStrings = strings.filter((str) =>
+      this.isTranslatableJapaneseString(str),
+    )
     return [...new Set(japaneseStrings)]
   }
 
@@ -75,11 +97,45 @@ export class JsTextExtractorService {
   }
 
   /**
-   * Checks if a string contains Japanese characters.
+   * Checks if a string is a translatable Japanese string.
+   * Filters out strings that are too long, contain code patterns,
+   * or have too low a ratio of Japanese characters.
    * @param str - The string to check
-   * @returns True if the string contains Japanese characters
+   * @returns True if the string should be translated
    */
-  private containsJapanese(str: string): boolean {
-    return JsTextExtractorService.JAPANESE_REGEX.test(str)
+  private isTranslatableJapaneseString(str: string): boolean {
+    // Skip empty or too long strings
+    if (
+      str.length === 0 ||
+      str.length > JsTextExtractorService.MAX_STRING_LENGTH
+    ) {
+      return false
+    }
+
+    // Check if contains Japanese
+    const japaneseMatches = str.match(JsTextExtractorService.JAPANESE_REGEX)
+    if (!japaneseMatches || japaneseMatches.length === 0) {
+      return false
+    }
+
+    // Skip strings that look like code
+    for (const pattern of JsTextExtractorService.CODE_PATTERNS) {
+      if (pattern.test(str)) {
+        return false
+      }
+    }
+
+    // Ensure Japanese characters make up a reasonable portion of the string
+    // (at least 20% for mixed strings, or the string is short)
+    const japaneseCharCount = japaneseMatches.length
+    const nonWhitespaceLength = str.replace(/\s/g, '').length
+    if (nonWhitespaceLength > 10) {
+      const japaneseRatio = japaneseCharCount / nonWhitespaceLength
+      if (japaneseRatio < 0.2) {
+        return false
+      }
+    }
+
+    return true
   }
 }

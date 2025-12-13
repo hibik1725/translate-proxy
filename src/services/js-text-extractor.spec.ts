@@ -121,6 +121,74 @@ describe('JsTextExtractorService', () => {
         // Assert
         expect(result.length).toBeGreaterThan(0)
       })
+
+      it('長すぎる文字列は抽出しないこと', () => {
+        // Arrange
+        const extractor = new JsTextExtractorService()
+        // 201文字以上の日本語文字列
+        const longJapanese = '日本語'.repeat(100)
+        const jsCode = `var text = "${longJapanese}";`
+
+        // Act
+        const result = extractor.execute(jsCode)
+
+        // Assert
+        expect(result).toHaveLength(0)
+      })
+
+      it('JSコードパターンを含む文字列は抽出しないこと', () => {
+        // Arrange
+        const extractor = new JsTextExtractorService()
+        const jsCode = `
+          var a = "日本語function() { return 1; }";
+          var b = "テスト.method()";
+          var c = "日本語{key: value}";
+        `
+
+        // Act
+        const result = extractor.execute(jsCode)
+
+        // Assert
+        expect(result).toHaveLength(0)
+      })
+
+      it('日本語の割合が低い文字列は抽出しないこと', () => {
+        // Arrange
+        const extractor = new JsTextExtractorService()
+        // 日本語1文字に対して英数字が多い
+        const jsCode = 'var text = "あ abcdefghijklmnopqrstuvwxyz123456789";'
+
+        // Act
+        const result = extractor.execute(jsCode)
+
+        // Assert
+        expect(result).toHaveLength(0)
+      })
+
+      it('URLを含む文字列は抽出しないこと', () => {
+        // Arrange
+        const extractor = new JsTextExtractorService()
+        const jsCode = 'var text = "日本語 https://example.com";'
+
+        // Act
+        const result = extractor.execute(jsCode)
+
+        // Assert
+        expect(result).toHaveLength(0)
+      })
+
+      it('短い文字列は日本語割合チェックをスキップすること', () => {
+        // Arrange
+        const extractor = new JsTextExtractorService()
+        // 短い文字列で日本語が1文字でも含まれていれば抽出
+        const jsCode = 'var text = "AB検索CD";'
+
+        // Act
+        const result = extractor.execute(jsCode)
+
+        // Assert
+        expect(result).toContain('AB検索CD')
+      })
     })
   })
 })

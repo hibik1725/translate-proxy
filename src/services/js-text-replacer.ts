@@ -22,6 +22,7 @@ export class JsTextReplacerService {
   /**
    * Replaces all occurrences of a Japanese string in JS code.
    * Handles both escaped Unicode and direct UTF-8 forms.
+   * Uses safe escaping to avoid breaking JS syntax.
    * @param code - The JavaScript code
    * @param original - The original Japanese string
    * @param translated - The translated string
@@ -34,14 +35,48 @@ export class JsTextReplacerService {
   ): string {
     // Convert original to escaped form for matching
     const escapedOriginal = this.toUnicodeEscape(original)
-    const escapedTranslated = this.toUnicodeEscape(translated)
+    // Escape the translation to be safe for JS strings
+    const safeTranslated = this.escapeForJsString(translated)
 
-    // Replace Unicode escaped form
-    let result = code.split(escapedOriginal).join(escapedTranslated)
+    // Replace Unicode escaped form with safe escaped translation
+    let result = code.split(escapedOriginal).join(safeTranslated)
 
-    // Also replace direct UTF-8 form if present
-    result = result.split(original).join(translated)
+    // Also replace direct UTF-8 form if present with safe escaped translation
+    result = result.split(original).join(safeTranslated)
 
+    return result
+  }
+
+  /**
+   * Escapes a string to be safely used inside a JavaScript string literal.
+   * Escapes quotes, backslashes, and other special characters.
+   * @param str - The string to escape
+   * @returns Escaped string safe for JS string literals
+   */
+  private escapeForJsString(str: string): string {
+    let result = ''
+    for (const char of str) {
+      const code = char.charCodeAt(0)
+      // Escape characters that could break JS strings
+      if (char === '\\') {
+        result += '\\\\'
+      } else if (char === '"') {
+        result += '\\"'
+      } else if (char === "'") {
+        result += "\\'"
+      } else if (char === '\n') {
+        result += '\\n'
+      } else if (char === '\r') {
+        result += '\\r'
+      } else if (char === '\t') {
+        result += '\\t'
+      } else if (code > 127) {
+        // Keep non-ASCII as Unicode escapes to be safe
+        result += `\\u${code.toString(16).padStart(4, '0')}`
+      } else {
+        result += char
+      }
+    }
     return result
   }
 

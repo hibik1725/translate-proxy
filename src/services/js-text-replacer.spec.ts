@@ -112,6 +112,66 @@ describe('JsTextReplacerService', () => {
         // 「スパイク」が「Spike」に置換されるので、結果は「Spike名です」になる
         expect(result).toContain('Spike')
       })
+
+      it('翻訳にシングルクォートが含まれていてもJS構文が壊れないこと', () => {
+        // Arrange
+        const replacer = new JsTextReplacerService()
+        const jsCode = "var text = '日本語';"
+        const translations = new Map([['日本語', "It's Japanese"]])
+
+        // Act
+        const result = replacer.execute(jsCode, translations)
+
+        // Assert
+        // シングルクォートがエスケープされる
+        expect(result).toContain("It\\'s Japanese")
+        expect(result).not.toContain('日本語')
+      })
+
+      it('翻訳にダブルクォートが含まれていてもJS構文が壊れないこと', () => {
+        // Arrange
+        const replacer = new JsTextReplacerService()
+        const jsCode = 'var text = "日本語";'
+        const translations = new Map([['日本語', 'Say "Hello"']])
+
+        // Act
+        const result = replacer.execute(jsCode, translations)
+
+        // Assert
+        // ダブルクォートがエスケープされる
+        expect(result).toContain('Say \\"Hello\\"')
+        expect(result).not.toContain('日本語')
+      })
+
+      it('翻訳にバックスラッシュが含まれていてもJS構文が壊れないこと', () => {
+        // Arrange
+        const replacer = new JsTextReplacerService()
+        const jsCode = 'var text = "パス";'
+        const translations = new Map([['パス', 'C:\\path\\to\\file']])
+
+        // Act
+        const result = replacer.execute(jsCode, translations)
+
+        // Assert
+        // バックスラッシュがエスケープされる
+        expect(result).toContain('C:\\\\path\\\\to\\\\file')
+        expect(result).not.toContain('パス')
+      })
+
+      it('翻訳に改行が含まれていてもJS構文が壊れないこと', () => {
+        // Arrange
+        const replacer = new JsTextReplacerService()
+        const jsCode = 'var text = "テキスト";'
+        const translations = new Map([['テキスト', 'Line1\nLine2']])
+
+        // Act
+        const result = replacer.execute(jsCode, translations)
+
+        // Assert
+        // 改行がエスケープされる
+        expect(result).toContain('Line1\\nLine2')
+        expect(result).not.toContain('テキスト')
+      })
     })
   })
 })

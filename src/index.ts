@@ -2,7 +2,8 @@ import { Hono } from 'hono'
 import { sitemapRoute } from './routes/sitemap'
 import { translateRoute } from './routes/translate'
 import { CachedTranslatorService } from './services/cached-translator'
-import { isSupportedLang } from './services/translate'
+import { JsTranslationOrchestratorService } from './services/js-translation-orchestrator'
+import { isSupportedLang, type SupportedLang } from './services/translate'
 import type { Env } from './types/env'
 
 /**
@@ -24,6 +25,32 @@ app.get('/health', (c) => {
  */
 function containsJapanese(text: string): boolean {
   return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text)
+}
+
+/**
+ * Extracts language code from Referer header.
+ * @param referer - The Referer header value
+ * @returns The language code if found, otherwise null
+ */
+function extractLangFromReferer(
+  referer: string | null | undefined,
+): SupportedLang | null {
+  if (!referer) return null
+
+  try {
+    const url = new URL(referer)
+    const pathParts = url.pathname.split('/')
+    // Path format: /en/... or /zh/... or /ko/...
+    if (pathParts.length >= 2) {
+      const potentialLang = pathParts[1]
+      if (isSupportedLang(potentialLang)) {
+        return potentialLang
+      }
+    }
+  } catch {
+    // Invalid URL
+  }
+  return null
 }
 
 /**
@@ -110,7 +137,7 @@ app.get('/_next/data/*/:lang/*', async (c) => {
   // Remove lang prefix from path for origin request
   // e.g., /_next/data/xxx/en/track-and-field/items/id.json -> /_next/data/xxx/track-and-field/items/id.json
   const pathParts = c.req.path.split('/')
-  const langIndex = pathParts.findIndex((p) => p === lang)
+  const langIndex = pathParts.indexOf(lang)
   if (langIndex !== -1) {
     pathParts.splice(langIndex, 1)
   }
@@ -157,12 +184,63 @@ app.get('/_next/data/*/:lang/*', async (c) => {
 })
 
 // 静的ファイルプロキシ（_next/static, favicon等をオリジンに転送）
+// JSファイルの場合は日本語を翻訳してから返す
 app.get('/_next/static/*', async (c) => {
   const originUrl = c.env.ORIGIN_URL
   if (!originUrl) {
     return c.json({ error: 'ORIGIN_URL is not configured' }, 500)
   }
+
   const response = await fetch(`${originUrl}${c.req.path}`)
+
+  // Check if this is a JS file that needs translation
+  const isJsFile = c.req.path.endsWith('.js')
+  const referer = c.req.header('Referer')
+  const lang = extractLangFromReferer(referer)
+  const apiKey = c.env.OPENAI_API_KEY
+
+  // Only translate JS files when we have a language from referer and API key
+  if (isJsFile && lang && apiKey && response.ok) {
+    try {
+      const jsCode = await response.text()
+
+      // Check if the JS contains Japanese characters (including Unicode escapes)
+      const hasJapanese =
+        containsJapanese(jsCode) ||
+        /\\u3[0-9a-fA-F]{3}|\\u4[eE][0-9a-fA-F]{2}|\\u[5-9][0-9a-fA-F]{3}/.test(
+          jsCode,
+        )
+
+      if (hasJapanese) {
+        const orchestrator = new JsTranslationOrchestratorService({
+          apiKey,
+          kv: c.env.TRANSLATION_CACHE,
+        })
+        const translatedJs = await orchestrator.execute(jsCode, lang)
+
+        return new Response(translatedJs, {
+          status: response.status,
+          headers: {
+            'Content-Type': 'application/javascript; charset=utf-8',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        })
+      }
+
+      // Return original JS with proper headers
+      return new Response(jsCode, {
+        status: response.status,
+        headers: {
+          'Content-Type': 'application/javascript; charset=utf-8',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+      })
+    } catch (error) {
+      console.error('JS translation error:', error)
+      // Fall through to return original response
+    }
+  }
+
   return new Response(response.body, {
     status: response.status,
     headers: response.headers,

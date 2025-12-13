@@ -52,17 +52,24 @@ export class JsTextExtractorService {
 
   /**
    * Extracts all string literals from JavaScript code.
-   * Handles both single and double quoted strings.
+   * Uses a targeted approach to find strings containing Japanese Unicode escapes
+   * or actual Japanese characters, avoiding false matches from minified code.
    * @param jsCode - The JavaScript code to parse
    * @returns Array of extracted string values (with Unicode unescaped)
    */
   private extractStringLiterals(jsCode: string): string[] {
     const results: string[] = []
 
-    // Match double-quoted strings
-    const doubleQuoteRegex = /"(?:[^"\\]|\\.)*"/g
-    const doubleQuoteMatches = jsCode.match(doubleQuoteRegex) ?? []
-    for (const matchStr of doubleQuoteMatches) {
+    // Pattern for Japanese Unicode escapes:
+    // - Hiragana: \u3040-\u309F
+    // - Katakana: \u30A0-\u30FF
+    // - Kanji: \u4E00-\u9FFF
+    // Match strings that contain at least one Japanese Unicode escape
+    const japaneseUnicodePattern =
+      /["'](?:[^"'\\]*(?:\\u(?:3[0-9][4-9a-fA-F][0-9a-fA-F]|30[a-fA-F][0-9a-fA-F]|4[eE][0-9a-fA-F]{2}|[5-9][0-9a-fA-F]{3}))[^"'\\]*)+["']/g
+
+    const matches = jsCode.match(japaneseUnicodePattern) ?? []
+    for (const matchStr of matches) {
       const raw = matchStr.slice(1, -1) // Remove quotes
       const unescaped = this.unescapeUnicode(raw)
       if (unescaped.trim()) {
@@ -70,14 +77,15 @@ export class JsTextExtractorService {
       }
     }
 
-    // Match single-quoted strings
-    const singleQuoteRegex = /'(?:[^'\\]|\\.)*'/g
-    const singleQuoteMatches = jsCode.match(singleQuoteRegex) ?? []
-    for (const matchStr of singleQuoteMatches) {
-      const raw = matchStr.slice(1, -1) // Remove quotes
-      const unescaped = this.unescapeUnicode(raw)
-      if (unescaped.trim()) {
-        results.push(unescaped)
+    // Also match strings with direct Japanese characters (not escaped)
+    // This pattern looks for strings preceded by common JS contexts like :, =, (, [, ,
+    const directJapanesePattern =
+      /(?:[:,=([]\s*)["']([^"']*[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF][^"']*)["']/g
+
+    for (const match of jsCode.matchAll(directJapanesePattern)) {
+      const content = match[1]
+      if (content.trim()) {
+        results.push(content)
       }
     }
 

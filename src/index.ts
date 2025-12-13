@@ -285,6 +285,19 @@ app.get('/:file{.+\\.svg$}', async (c) => {
   })
 })
 
+// 画像ファイルプロキシ（jpg, png, gif, webp）
+app.get('/*/:file{.+\\.(jpg|jpeg|png|gif|webp)$}', async (c) => {
+  const originUrl = c.env.ORIGIN_URL
+  if (!originUrl) {
+    return c.json({ error: 'ORIGIN_URL is not configured' }, 500)
+  }
+  const response = await fetch(`${originUrl}${c.req.path}`)
+  return new Response(response.body, {
+    status: response.status,
+    headers: response.headers,
+  })
+})
+
 // サイトマップルート（翻訳ルートより先に登録）
 app.route('/:lang', sitemapRoute)
 

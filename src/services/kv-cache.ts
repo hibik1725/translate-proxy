@@ -59,7 +59,14 @@ export class KvCacheService {
    * @returns The cache entry if found, null otherwise
    */
   public async execute(key: string): Promise<CacheGetResult | null> {
-    const cached = await this.kv.get(key, { type: 'json' })
+    let cached: object | null
+    try {
+      cached = await this.kv.get(key, { type: 'json' })
+    } catch (error) {
+      // JSON parse error - treat as cache miss
+      console.error('Failed to parse cached JSON:', error)
+      return null
+    }
 
     if (!this.isCacheEntry(cached)) {
       return null

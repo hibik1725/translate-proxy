@@ -7,6 +7,7 @@ import type { KVNamespace } from '../types/env'
 import { CachedTranslatorService } from './cached-translator'
 import { HtmlParserService } from './html-parser'
 import { HtmlSerializerService } from './html-serializer'
+import { LinkRewriterService } from './link-rewriter'
 import type { OpenAIClient } from './openai-translator'
 import { TextExtractorService } from './text-extractor'
 import { TextReplacerService } from './text-replacer'
@@ -29,6 +30,7 @@ export class TranslationOrchestratorService {
   private readonly parser: HtmlParserService
   private readonly extractor: TextExtractorService
   private readonly replacer: TextReplacerService
+  private readonly linkRewriter: LinkRewriterService
   private readonly serializer: HtmlSerializerService
   private readonly translator: CachedTranslatorService
 
@@ -40,6 +42,7 @@ export class TranslationOrchestratorService {
     this.parser = new HtmlParserService()
     this.extractor = new TextExtractorService()
     this.replacer = new TextReplacerService()
+    this.linkRewriter = new LinkRewriterService()
     this.serializer = new HtmlSerializerService()
     this.translator = new CachedTranslatorService({
       apiKey: deps.apiKey,
@@ -75,7 +78,10 @@ export class TranslationOrchestratorService {
     // 5. Replace texts in HAST
     const translatedHast = this.replacer.execute(hast, translations)
 
-    // 6. Serialize HAST to HTML
-    return this.serializer.execute(translatedHast)
+    // 6. Rewrite internal links to include language prefix
+    const rewrittenHast = this.linkRewriter.execute(translatedHast, targetLang)
+
+    // 7. Serialize HAST to HTML
+    return this.serializer.execute(rewrittenHast)
   }
 }

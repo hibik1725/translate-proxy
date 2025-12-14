@@ -292,6 +292,53 @@ describe('TextExtractorService', () => {
           // Assert
           expect(result.length).toBe(0)
         })
+
+        it('hidden inputのvalue属性から日本語を抽出できること', () => {
+          // Arrange
+          const service = new TextExtractorService()
+          const html =
+            '<html><body><input type="hidden" name="sort" value="人気順"></body></html>'
+          const hast = parser.execute(html)
+
+          // Act
+          const result = service.execute(hast)
+
+          // Assert
+          expect(result.length).toBe(1)
+          expect(result[0].value).toBe('人気順')
+          expect(result[0].source.type).toBe('attribute')
+          if (result[0].source.type === 'attribute') {
+            expect(result[0].source.attributeName).toBe('value')
+          }
+        })
+
+        it('通常のinputのvalue属性は抽出しないこと', () => {
+          // Arrange
+          const service = new TextExtractorService()
+          const html =
+            '<html><body><input type="text" value="入力値"></body></html>'
+          const hast = parser.execute(html)
+
+          // Act
+          const result = service.execute(hast)
+
+          // Assert
+          expect(result.length).toBe(0)
+        })
+
+        it('hidden inputでも英語のみのvalueは抽出しないこと', () => {
+          // Arrange
+          const service = new TextExtractorService()
+          const html =
+            '<html><body><input type="hidden" value="popularity"></body></html>'
+          const hast = parser.execute(html)
+
+          // Act
+          const result = service.execute(hast)
+
+          // Assert
+          expect(result.length).toBe(0)
+        })
       })
 
       describe('JSON-LD抽出', () => {

@@ -5,6 +5,12 @@
 
 import type { Element, Root, Text } from 'hast'
 import { visit } from 'unist-util-visit'
+import {
+  containsJapanese,
+  EXCLUDE_TAGS,
+  isHiddenInput,
+  TRANSLATABLE_ATTRIBUTES,
+} from './html-utils'
 
 /**
  * Types of extractable text sources
@@ -23,24 +29,6 @@ export interface ExtractedText {
   /** The trimmed text value */
   value: string
 }
-
-/**
- * Tags that should be excluded from translation
- */
-const EXCLUDE_TAGS = ['style', 'code', 'noscript']
-
-/**
- * Attributes that should be translated
- * Note: HAST uses camelCase for property names (e.g., aria-label -> ariaLabel)
- */
-const TRANSLATABLE_ATTRIBUTES = [
-  'alt',
-  'title',
-  'placeholder',
-  'ariaLabel',
-  'ariaDescription',
-  'content',
-]
 
 /**
  * Service for extracting translatable text from HAST.
@@ -91,11 +79,7 @@ export class TextExtractorService {
     visit(hast, 'text', (node: Text, _index, parent) => {
       if (this.shouldTranslateTextNode(parent as Element | null)) {
         const trimmed = node.value.trim()
-        if (
-          trimmed &&
-          this.containsJapanese(trimmed) &&
-          !seenValues.has(trimmed)
-        ) {
+        if (trimmed && containsJapanese(trimmed) && !seenValues.has(trimmed)) {
           seenValues.add(trimmed)
           results.push({
             source: { type: 'text', node },
@@ -131,12 +115,31 @@ export class TextExtractorService {
           const trimmed = attrValue.trim()
           if (
             trimmed &&
-            this.containsJapanese(trimmed) &&
+            containsJapanese(trimmed) &&
             !seenValues.has(trimmed)
           ) {
             seenValues.add(trimmed)
             results.push({
               source: { type: 'attribute', element, attributeName: attrName },
+              value: trimmed,
+            })
+          }
+        }
+      }
+
+      // Extract value attribute from hidden inputs
+      if (isHiddenInput(element)) {
+        const value = properties.value
+        if (typeof value === 'string') {
+          const trimmed = value.trim()
+          if (
+            trimmed &&
+            containsJapanese(trimmed) &&
+            !seenValues.has(trimmed)
+          ) {
+            seenValues.add(trimmed)
+            results.push({
+              source: { type: 'attribute', element, attributeName: 'value' },
               value: trimmed,
             })
           }
@@ -205,7 +208,7 @@ export class TextExtractorService {
         for (const match of matches) {
           // Remove surrounding quotes
           const text = match.slice(1, -1)
-          if (this.containsJapanese(text)) {
+          if (containsJapanese(text)) {
             results.push(text)
           }
         }
@@ -223,7 +226,7 @@ export class TextExtractorService {
   private collectJapaneseStrings(value: unknown, results: string[]): void {
     if (typeof value === 'string') {
       const trimmed = value.trim()
-      if (trimmed && this.containsJapanese(trimmed)) {
+      if (trimmed && containsJapanese(trimmed)) {
         results.push(trimmed)
       }
     } else if (Array.isArray(value)) {
@@ -250,17 +253,5 @@ export class TextExtractorService {
     // Allow script tags only for JSON-LD (handled separately)
     if (parent.tagName === 'script') return false
     return !EXCLUDE_TAGS.includes(parent.tagName)
-  }
-
-  /**
-   * Checks if the text contains Japanese characters.
-   * @param text - The text to check
-   * @returns True if the text contains Japanese characters
-   */
-  private containsJapanese(text: string): boolean {
-    // Hiragana: \u3040-\u309F
-    // Katakana: \u30A0-\u30FF
-    // Kanji: \u4E00-\u9FFF
-    return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text)
   }
 }

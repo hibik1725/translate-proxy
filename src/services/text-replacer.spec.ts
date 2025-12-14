@@ -213,6 +213,40 @@ describe('TextReplacerService', () => {
           // Assert
           expect(outputHtml).toContain('aria-label="Close"')
         })
+
+        it('hidden inputのvalue属性が置換されること', () => {
+          // Arrange
+          const service = new TextReplacerService()
+          const html =
+            '<html><body><input type="hidden" name="sort" value="人気順"></body></html>'
+          const hast = parser.execute(html)
+          const translations = new Map([['人気順', 'Popularity']])
+
+          // Act
+          const result = service.execute(hast, translations)
+          const outputHtml = serializer.execute(result)
+
+          // Assert
+          expect(outputHtml).toContain('value="Popularity"')
+          expect(outputHtml).not.toContain('人気順')
+        })
+
+        it('通常のinputのvalue属性は置換しないこと', () => {
+          // Arrange
+          const service = new TextReplacerService()
+          const html =
+            '<html><body><input type="text" value="入力値"></body></html>'
+          const hast = parser.execute(html)
+          const translations = new Map([['入力値', 'Input Value']])
+
+          // Act
+          const result = service.execute(hast, translations)
+          const outputHtml = serializer.execute(result)
+
+          // Assert
+          expect(outputHtml).toContain('value="入力値"')
+          expect(outputHtml).not.toContain('Input Value')
+        })
       })
 
       describe('JSON-LD置換', () => {

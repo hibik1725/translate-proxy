@@ -5,24 +5,11 @@
 
 import type { Element, Root, Text } from 'hast'
 import { visit } from 'unist-util-visit'
-
-/**
- * Tags that should be excluded from replacement
- */
-const EXCLUDE_TAGS = ['style', 'code', 'noscript']
-
-/**
- * Attributes that should be translated
- * Note: HAST uses camelCase for property names (e.g., aria-label -> ariaLabel)
- */
-const TRANSLATABLE_ATTRIBUTES = [
-  'alt',
-  'title',
-  'placeholder',
-  'ariaLabel',
-  'ariaDescription',
-  'content',
-]
+import {
+  EXCLUDE_TAGS,
+  isHiddenInput,
+  TRANSLATABLE_ATTRIBUTES,
+} from './html-utils'
 
 /**
  * Service for replacing text with translations.
@@ -92,6 +79,18 @@ export class TextReplacerService {
           const translated = translations.get(trimmed)
           if (translated) {
             properties[attrName] = attrValue.replace(trimmed, translated)
+          }
+        }
+      }
+
+      // Replace value attribute in hidden inputs
+      if (isHiddenInput(element)) {
+        const value = properties.value
+        if (typeof value === 'string') {
+          const trimmed = value.trim()
+          const translated = translations.get(trimmed)
+          if (translated) {
+            properties.value = value.replace(trimmed, translated)
           }
         }
       }

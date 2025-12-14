@@ -12,7 +12,13 @@ export class JsTextReplacerService {
   public execute(jsCode: string, translations: Map<string, string>): string {
     let result = jsCode
 
-    for (const [original, translated] of translations) {
+    // Sort by length (longest first) to avoid partial replacements
+    // e.g., "短距離すべて" should be replaced before "短距離"
+    const sortedEntries = [...translations.entries()].sort(
+      (a, b) => b[0].length - a[0].length,
+    )
+
+    for (const [original, translated] of sortedEntries) {
       result = this.replaceAllOccurrences(result, original, translated)
     }
 

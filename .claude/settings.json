@@ -1,8 +1,4 @@
 {
-  "statusLine": {
-    "type": "command",
-    "command": "bun x ccusage statusline"
-  },
   "env": {
     "ENABLE_TOOL_SEARCH": "true"
   },
@@ -73,6 +69,15 @@
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bun x ccusage statusline"
+  },
+  "enabledPlugins": {
+    "ralph-wiggum@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
   },
   "mcpServers": {
     "cloudflare": {

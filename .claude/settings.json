@@ -1,4 +1,79 @@
 {
+  "statusLine": {
+    "type": "command",
+    "command": "bun x ccusage statusline"
+  },
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE '(rm\\s+-rf\\s+/|git\\s+push\\s+.*--force|DROP\\s+TABLE|DELETE\\s+FROM.*WHERE\\s+1)'; then echo 'Blocked: Dangerous command detected' >&2; exit 2; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_FILE_PATHS\" | grep -qE '(\\.env|\\.env\\.|credentials|secrets|password|private.*key)'; then echo 'Blocked: Sensitive file modification' >&2; exit 2; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "for f in $CLAUDE_FILE_PATHS; do case \"$f\" in *.ts|*.tsx|*.js|*.jsx) npx @biomejs/biome format --write \"$f\" 2>/dev/null;; *.go) gofmt -w \"$f\" 2>/dev/null;; *.py) black \"$f\" 2>/dev/null;; *.rs) rustfmt \"$f\" 2>/dev/null;; esac; done || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '\"[\\(.timestamp // now | strftime(\"%Y-%m-%d %H:%M:%S\"))] \\(.tool_input.command // \"N/A\")\"' >> ~/.claude/command-history.log 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsc --noEmit 2>&1 | head -30; if [ $? -ne 0 ]; then echo 'Type errors detected. Please fix them.' >&2; exit 2; fi"
+          },
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Task completed\" with title \"Claude Code\" sound name \"Glass\"'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[$(date '+%Y-%m-%d %H:%M:%S')] New prompt submitted\" >> ~/.claude/session.log"
+          }
+        ]
+      }
+    ]
+  },
   "mcpServers": {
     "cloudflare": {
       "command": "npx",

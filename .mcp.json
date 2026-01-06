@@ -1,8 +1,47 @@
 {
   "mcpServers": {
+    "serena": {
+      "command": "uvx",
+      "args": ["serena-mcp"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-playwright"]
+    },
     "chrome-devtools": {
       "command": "npx",
-      "args": ["chrome-devtools-mcp@latest"]
+      "args": ["-y", "@anthropic/mcp-server-chrome-devtools"]
+    },
+    "figma": {
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "cloudflare-workers-builds": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://builds.mcp.cloudflare.com/sse"]
+    },
+    "cloudflare-workers-bindings": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://bindings.mcp.cloudflare.com/sse"]
+    },
+    "cloudflare-observability": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://observability.mcp.cloudflare.com/sse"
+      ]
     }
   }
 }

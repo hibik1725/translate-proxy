@@ -2,7 +2,9 @@ import { Hono } from 'hono'
 import { sitemapRoute } from './routes/sitemap'
 import { translateRoute } from './routes/translate'
 import { CachedTranslatorService } from './services/cached-translator'
+import { containsJapanese } from './services/html-utils'
 import { JsTranslationOrchestratorService } from './services/js-translation-orchestrator'
+import { JsonTranslationService } from './services/json-translation'
 import { isSupportedLang, type SupportedLang } from './services/translate'
 import type { Env } from './types/env'
 
@@ -19,13 +21,6 @@ app.get('/health', (c) => {
     timestamp: new Date().toISOString(),
   })
 })
-
-/**
- * Checks if the text contains Japanese characters.
- */
-function containsJapanese(text: string): boolean {
-  return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/.test(text)
-}
 
 /**
  * Extracts language code from Referer header.
@@ -51,60 +46,6 @@ function extractLangFromReferer(
     // Invalid URL
   }
   return null
-}
-
-/**
- * Extracts Japanese strings from a JSON value.
- */
-function extractJapaneseStrings(value: unknown, results: string[]): void {
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (trimmed && containsJapanese(trimmed)) {
-      results.push(trimmed)
-    }
-  } else if (Array.isArray(value)) {
-    for (const item of value) {
-      extractJapaneseStrings(item, results)
-    }
-  } else if (value !== null && typeof value === 'object') {
-    for (const key of Object.keys(value)) {
-      extractJapaneseStrings((value as Record<string, unknown>)[key], results)
-    }
-  }
-}
-
-/**
- * Replaces Japanese strings in a JSON value with translations.
- */
-function replaceInJson(
-  value: unknown,
-  translations: Map<string, string>,
-): unknown {
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    const translated = translations.get(trimmed)
-    if (translated) {
-      return value.replace(trimmed, translated)
-    }
-    return value
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => replaceInJson(item, translations))
-  }
-
-  if (value !== null && typeof value === 'object') {
-    const result: Record<string, unknown> = {}
-    for (const key of Object.keys(value)) {
-      result[key] = replaceInJson(
-        (value as Record<string, unknown>)[key],
-        translations,
-      )
-    }
-    return result
-  }
-
-  return value
 }
 
 // _next/data JSONの翻訳（言語プレフィックス付きパスから）
@@ -154,10 +95,9 @@ app.get('/_next/data/*/:lang/*', async (c) => {
 
     const jsonData: unknown = await response.json()
 
-    // Extract Japanese texts
-    const japaneseTexts: string[] = []
-    extractJapaneseStrings(jsonData, japaneseTexts)
-    const uniqueTexts = [...new Set(japaneseTexts)]
+    // Extract Japanese texts using JsonTranslationService
+    const jsonTranslationService = new JsonTranslationService()
+    const uniqueTexts = jsonTranslationService.extractJapaneseStrings(jsonData)
 
     if (uniqueTexts.length === 0) {
       return c.json(jsonData)
@@ -170,8 +110,11 @@ app.get('/_next/data/*/:lang/*', async (c) => {
     })
     const translations = await translator.execute(uniqueTexts, lang)
 
-    // Replace
-    const translatedData = replaceInJson(jsonData, translations)
+    // Replace using JsonTranslationService
+    const translatedData = jsonTranslationService.replaceTranslations(
+      jsonData,
+      translations,
+    )
 
     return c.json(translatedData)
   } catch (error) {

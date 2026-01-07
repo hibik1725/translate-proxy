@@ -1,6 +1,6 @@
 /**
  * KV Cache Service
- * Caches translation results in Cloudflare KV
+ * Caches translation results in Cloudflare KV with TTL support
  */
 
 import type { KVNamespace } from '../types/env'
@@ -29,17 +29,44 @@ export interface CacheGetResult {
 }
 
 /**
+ * Options for KvCacheService
+ */
+export interface KvCacheOptions {
+  /** TTL in seconds (default: 30 days = 2592000 seconds) */
+  ttlSeconds?: number
+  /** Minimum interval between lastUsedAt updates in seconds (default: 1 day = 86400 seconds) */
+  lastUsedAtUpdateIntervalSeconds?: number
+}
+
+/**
+ * Default TTL: 30 days in seconds
+ */
+const DEFAULT_TTL_SECONDS = 30 * 24 * 60 * 60
+
+/**
+ * Default interval for lastUsedAt updates: 1 day in seconds
+ */
+const DEFAULT_LAST_USED_AT_UPDATE_INTERVAL_SECONDS = 24 * 60 * 60
+
+/**
  * Service for caching translation results in Cloudflare KV.
  */
 export class KvCacheService {
   private readonly kv: KVNamespace
+  private readonly ttlSeconds: number
+  private readonly lastUsedAtUpdateIntervalSeconds: number
 
   /**
    * Creates a new KvCacheService instance.
    * @param kv - The Cloudflare KV namespace binding
+   * @param options - Optional configuration options
    */
-  constructor(kv: KVNamespace) {
+  constructor(kv: KVNamespace, options?: KvCacheOptions) {
     this.kv = kv
+    this.ttlSeconds = options?.ttlSeconds ?? DEFAULT_TTL_SECONDS
+    this.lastUsedAtUpdateIntervalSeconds =
+      options?.lastUsedAtUpdateIntervalSeconds ??
+      DEFAULT_LAST_USED_AT_UPDATE_INTERVAL_SECONDS
   }
 
   /**
@@ -55,6 +82,7 @@ export class KvCacheService {
 
   /**
    * Retrieves a cached translation and updates lastUsedAt timestamp.
+   * Only updates lastUsedAt if more than the configured interval has passed.
    * @param key - The cache key
    * @returns The cache entry if found, null otherwise
    */
@@ -72,16 +100,26 @@ export class KvCacheService {
       return null
     }
 
-    // Update lastUsedAt timestamp
-    const updatedEntry: CacheEntry = {
-      ...cached,
-      lastUsedAt: new Date().toISOString(),
-    }
+    // Only update lastUsedAt if more than the configured interval has passed
+    const lastUsedAt = new Date(cached.lastUsedAt)
+    const now = new Date()
+    const secondsSinceLastUpdate = (now.getTime() - lastUsedAt.getTime()) / 1000
 
-    // Fire-and-forget update (don't await to avoid latency)
-    this.kv.put(key, JSON.stringify(updatedEntry)).catch((error) => {
-      console.error('Failed to update cache lastUsedAt:', error)
-    })
+    if (secondsSinceLastUpdate >= this.lastUsedAtUpdateIntervalSeconds) {
+      const updatedEntry: CacheEntry = {
+        ...cached,
+        lastUsedAt: now.toISOString(),
+      }
+
+      // Fire-and-forget update with TTL refresh (don't await to avoid latency)
+      this.kv
+        .put(key, JSON.stringify(updatedEntry), {
+          expirationTtl: this.ttlSeconds,
+        })
+        .catch((error) => {
+          console.error('Failed to update cache lastUsedAt:', error)
+        })
+    }
 
     return {
       translatedText: cached.translatedText,
@@ -90,7 +128,7 @@ export class KvCacheService {
   }
 
   /**
-   * Stores a translation in the cache.
+   * Stores a translation in the cache with TTL.
    * @param key - The cache key
    * @param translatedText - The translated text to cache
    */
@@ -102,7 +140,9 @@ export class KvCacheService {
       lastUsedAt: now,
     }
 
-    await this.kv.put(key, JSON.stringify(entry))
+    await this.kv.put(key, JSON.stringify(entry), {
+      expirationTtl: this.ttlSeconds,
+    })
   }
 
   /**

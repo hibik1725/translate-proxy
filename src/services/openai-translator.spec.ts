@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   type OpenAIClient,
   OpenAITranslatorService,
@@ -73,11 +73,17 @@ describe('OpenAITranslatorService', () => {
     })
 
     describe('失敗系', () => {
-      it('APIエラー時にTranslationErrorをスローすること', async () => {
+      it('APIエラー時にフォールバックが無効の場合はTranslationErrorをスローすること', async () => {
         // Arrange
         const mockCreate = vi.fn().mockRejectedValueOnce(new Error('API Error'))
         const mockClient = createMockClient(mockCreate)
-        const service = new OpenAITranslatorService('test-api-key', mockClient)
+        const service = new OpenAITranslatorService(
+          'test-api-key',
+          mockClient,
+          {
+            useFallback: false,
+          },
+        )
 
         // Act & Assert
         await expect(service.execute(['テスト'], 'en')).rejects.toThrow(
@@ -85,18 +91,66 @@ describe('OpenAITranslatorService', () => {
         )
       })
 
-      it('空のレスポンス時にTranslationErrorをスローすること', async () => {
+      it('APIエラー時にフォールバックが有効の場合は原文を返すこと', async () => {
+        // Arrange
+        const mockCreate = vi.fn().mockRejectedValueOnce(new Error('API Error'))
+        const mockClient = createMockClient(mockCreate)
+        const service = new OpenAITranslatorService(
+          'test-api-key',
+          mockClient,
+          {
+            useFallback: true,
+          },
+        )
+
+        // Act
+        const result = await service.execute(['テスト'], 'en')
+
+        // Assert
+        expect(result.size).toBe(1)
+        expect(result.get('テスト')).toBe('テスト')
+      })
+
+      it('空のレスポンス時にフォールバックが無効の場合はTranslationErrorをスローすること', async () => {
         // Arrange
         const mockCreate = vi.fn().mockResolvedValue({
           choices: [{ message: { content: null } }],
         })
         const mockClient = createMockClient(mockCreate)
-        const service = new OpenAITranslatorService('test-api-key', mockClient)
+        const service = new OpenAITranslatorService(
+          'test-api-key',
+          mockClient,
+          {
+            useFallback: false,
+          },
+        )
 
         // Act & Assert
         await expect(service.execute(['テスト'], 'en')).rejects.toThrow(
           TranslationError,
         )
+      })
+
+      it('空のレスポンス時にフォールバックが有効の場合は原文を返すこと', async () => {
+        // Arrange
+        const mockCreate = vi.fn().mockResolvedValue({
+          choices: [{ message: { content: null } }],
+        })
+        const mockClient = createMockClient(mockCreate)
+        const service = new OpenAITranslatorService(
+          'test-api-key',
+          mockClient,
+          {
+            useFallback: true,
+          },
+        )
+
+        // Act
+        const result = await service.execute(['テスト'], 'en')
+
+        // Assert
+        expect(result.size).toBe(1)
+        expect(result.get('テスト')).toBe('テスト')
       })
     })
   })

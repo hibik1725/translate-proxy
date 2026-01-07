@@ -58,11 +58,12 @@ export class CachedTranslatorService {
     const textsToTranslate: string[] = []
 
     // Check cache for each text
-    if (this.cache) {
+    const cache = this.cache
+    if (cache) {
       await Promise.all(
         texts.map(async (text) => {
-          const key = this.cache!.generateKey(text, targetLang)
-          const cached = await this.cache!.execute(key)
+          const key = cache.generateKey(text, targetLang)
+          const cached = await cache.execute(key)
 
           if (cached) {
             translations.set(text, cached.translatedText)
